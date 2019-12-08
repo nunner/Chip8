@@ -10,9 +10,9 @@
 #include "codes.h"
 #include "cpu.h"
 
-#define DEBUG
+//#define DEBUG
 
-Instruction instructions[16] = {
+static Instruction instructions[16] = {
         {op_0xxx},
         {op_1xxx},
         {op_2xxx},
@@ -31,8 +31,7 @@ Instruction instructions[16] = {
         {op_fxxx}
 };
 
-
-unsigned char fontset[80] =
+static unsigned char fontset[80] =
         {
                 0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
                 0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -51,6 +50,15 @@ unsigned char fontset[80] =
                 0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
                 0xF0, 0x80, 0xF0, 0x80, 0x80  // F
         };
+
+static uint8_t scancodes[16] = {
+        SDLK_1, SDLK_2, SDLK_3, SDLK_4, // 1 2 3 4
+        SDLK_q, SDLK_w, SDLK_e, SDLK_r, // q w e r
+        SDLK_a, SDLK_s, SDLK_d, SDLK_f, // a s d f
+        SDLK_y, SDLK_x, SDLK_c, SDLK_v  // z x c v
+};
+
+SDL_Event event;
 
 void
 LoadFontset(Chip8 *state)
@@ -87,9 +95,12 @@ InitChip8 (Chip8 *state)
     SDL_Renderer *renderer;
     SDL_CreateWindowAndRenderer(64 * 10, 32 * 10, 0, &window, &renderer);
 
+    SDL_RenderClear(state->renderer);
+    SDL_RenderPresent(state->renderer);
+
     state->pc = 0x200;
     state->index = 0;
-    state->sp = 0;
+    state->sp = 16;
     state->draw = 0;
     state->renderer = renderer;
 
@@ -104,8 +115,11 @@ RunChip8 (Chip8 *state)
     uint16_t code = (state->memory[state->pc] << 8) | state->memory[state->pc + 1];
     uint16_t nibble = (code & 0xf000) >> 12;
 
-    instructions[nibble].func(state);
+#ifdef DEBUG
+    printf("%04x\n", code);
+#endif
 
+    instructions[nibble].func(state);
     state->pc += 2;
 
     if(state->delay_timer > 0)
@@ -116,15 +130,26 @@ RunChip8 (Chip8 *state)
     return 0;
 }
 
-void DrawChip8 (Chip8 *state)
+void
+ExitChip8 (Chip8 *state)
+{
+    free(state->renderer);
+    free(state);
+    exit(0);
+}
+
+void
+DrawChip8 (Chip8 *state)
 {
     uint16_t *graphics = state->gfx;
 
+#ifdef DEBUG
+    printf("\n===================================\n\n");
+#endif
+
+
     SDL_SetRenderDrawColor(state->renderer, 255, 255, 255, 255);
     SDL_RenderClear(state->renderer);
-
-    printf("\n\n\n");
-
 
     for (int i = 0; i < 32 * 10; i += 10) {
         for (int j = 0; j < 64 * 10; j += 10) {
@@ -142,4 +167,27 @@ void DrawChip8 (Chip8 *state)
     }
     SDL_RenderPresent(state->renderer);
 
+}
+
+SDL_Keycode
+GetKeyChip8(Chip8 *state)
+{
+    while(SDL_PollEvent(&event)) {
+        switch(event.type) {
+            case SDL_QUIT:
+                ExitChip8(state);
+                break;
+            case SDL_KEYUP:
+            case SDL_KEYDOWN:
+                for(size_t i = 0; i < 16; i++) {
+                    if(event.key.keysym.sym == scancodes[i])  {
+                        state->key[i] = (event.type == SDL_KEYDOWN) ? 1 : 0;
+                        return event.key.keysym.sym;
+                    }
+                }
+                break;
+        }
+    }
+
+    return 0;
 }

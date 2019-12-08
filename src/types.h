@@ -17,7 +17,7 @@ typedef struct {
     uint16_t draw;
     uint8_t key[16];
     uint8_t registers[16];
-    uint16_t stack[0xf];
+    uint16_t stack[16];
     uint8_t memory[4096];
     SDL_Renderer *renderer;
 } Chip8;

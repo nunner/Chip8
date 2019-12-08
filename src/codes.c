@@ -13,24 +13,23 @@
 #define X (state->registers[(UPPER & 0x0f)])
 #define Y (state->registers[(LOWER & 0xf0) >> 4])
 
-#define ADDR ((UPPER & 0x0f) << 8 | LOWER)
+#define ADDR (((UPPER & 0x0f) << 8) | LOWER)
 
 void pop_stack (Chip8 *state)
 {
-    state->pc = state->stack[state->sp] << 8 | state->stack[state->sp + 1];
-    state->sp += 1;
+    state->pc = state->stack[state->sp];
+    state->sp++;
 }
 
 void push_stack (Chip8 *state)
 {
-    state->stack[state->sp - 1] = state->pc & 0xff;
-    state->stack[state->sp - 2] = state->pc & 0xff00 >> 8;
-    state->sp -= 2;
+    state->sp--;
+    state->stack[state->sp] = state->pc;
 }
 
 void get_key (Chip8 *state, uint8_t reg)
 {
-
+    exit(0);
 }
 
 void op_0xxx (Chip8 *state)
@@ -46,12 +45,14 @@ void op_0xxx (Chip8 *state)
 void op_1xxx (Chip8 *state)
 {
     state->pc = ADDR;
+    state->pc -= 2;
 }
 
 void op_2xxx (Chip8 *state)
 {
     push_stack(state);
     state->pc = ADDR;
+    state->pc -= 2;
 }
 
 void op_3xxx (Chip8 *state)
@@ -136,6 +137,7 @@ void op_axxx (Chip8 *state)
 void op_bxxx (Chip8 *state)
 {
     state->pc = ADDR + state->registers[0];
+    state->pc -= 2;
 }
 
 void op_cxxx (Chip8 *state)
@@ -148,11 +150,11 @@ void op_dxxx (Chip8 *state)
     int height = LOWER & 0x0f;
     state->registers[0xf] = 0;
 
-    for (size_t yLine = 0; yLine < height; ++yLine) {
+    for (size_t yLine = 0; yLine < height; yLine++) {
         uint8_t pixel = state->memory[state->index + yLine];
 
-        for (size_t xLine = 0; xLine < 8; ++xLine) {
-            if((pixel & (0x80 >> xLine))) {
+        for (size_t xLine = 0; xLine < 8; xLine++) {
+            if((pixel & (0x80 >> xLine)) != 0) {
                 if(state->gfx[X + xLine + (Y + yLine) * 64] == 1)
                     state->registers[0xf] = 1;
                 state->gfx[X + xLine + (Y + yLine) * 64] ^= 1;
@@ -166,11 +168,11 @@ void op_dxxx (Chip8 *state)
 void op_exxx (Chip8 *state)
 {
     if(LOWER == 0x9E) {
-        if (state->key[X])
-            state->sp += 2;
+        if (state->key[X] != 0)
+            state->pc += 2;
     } else if(LOWER == 0xA1) {
-        if(!state->key[X])
-            state->sp += 2;
+        if(state->key[X] == 0)
+            state->pc += 2;
     }
 
 }
@@ -191,7 +193,7 @@ void op_fxxx (Chip8 *state)
             state->sound_timer = X;
             break;
         case 0x1E:
-            state->registers[0xf] = (state->index + X) > 0xfff;
+            state->registers[0xf] = ((uint32_t) state->index + (uint32_t) X) > 0xfff;
             state->index = state->index + X;
             break;
         case 0x29:
@@ -203,12 +205,12 @@ void op_fxxx (Chip8 *state)
             state->memory[state->index + 2] = (X % 100) % 10;
             break;
         case 0x55:
-            for(int i = 0; i < 16; i++) {
+            for(int i = 0; i <= (UPPER & 0x0f); i++) {
                 state->memory[state->index + i] = state->registers[i];
             }
             break;
         case 0x65:
-            for(int i = 0; i < 16; i++) {
+            for(int i = 0; i <= (UPPER & 0x0f); i++) {
                 state->registers[i] = state->memory[state->index + i];
             }
             break;

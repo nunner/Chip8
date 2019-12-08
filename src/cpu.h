@@ -15,3 +15,6 @@ InitChip8(Chip8 *);
 
 void
 DrawChip8(Chip8 *);
+
+SDL_Keycode
+GetKeyChip8(Chip8 *);
