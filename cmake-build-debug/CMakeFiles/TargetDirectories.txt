@@ -1,3 +1,0 @@
-/home/nun/Programming/C/Chip8/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/nun/Programming/C/Chip8/cmake-build-debug/CMakeFiles/Chip8.dir
-/home/nun/Programming/C/Chip8/cmake-build-debug/CMakeFiles/edit_cache.dir
